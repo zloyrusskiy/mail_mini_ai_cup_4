@@ -1,5 +1,3 @@
-require 'json'
-
 module Game
 	class Config
 		attr_reader :x_cells_count, :y_cells_count, :player_init_speed, :cell_width

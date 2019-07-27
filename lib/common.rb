@@ -1,5 +1,9 @@
 require 'game/config'
 require 'game/state'
+require 'game/bonus'
+require 'game/cell'
+require 'game/player'
+require 'game/point'
 
 require 'strategy/base_strategy'
 require 'strategy/random'
