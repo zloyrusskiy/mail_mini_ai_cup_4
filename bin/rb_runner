@@ -2,6 +2,8 @@
 $LOAD_PATH.unshift(File.join(__dir__, '..', 'lib'))
 require 'strategy/simple'
 require 'strategy/sofinms_algorithm'
+require 'common'
+require 'game_config'
 require 'json'
 require 'active_support/all'
 
@@ -14,12 +16,18 @@ class_name = 'Simple' if class_name.empty?
 
 strategy = ('Strategy::' + class_name).constantize.new
 
+game_config = Game::Config.new
+game_config.set_start_config $stdin.gets
+config = game_config.get_start_config
+
 loop do
 	line = $stdin.gets
+	game_config.set_current_state line
+	state = game_config.get_current_state
 
 	$stderr.puts ['got', line].inspect
 
-	puts JSON.generate(command: strategy.next_tick)
+	puts JSON.generate(command: strategy.next_tick(config, state))
 
 	# sleep 1
 end
