@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift(File.join(__dir__, '..', 'lib'))
+require 'strategy/simple'
+require 'json'
+
+$stdout.sync = true
+$stderr.sync = true 
+$stdin.sync = true
+
+strategy = Strategy::Simple.new
+
+loop do
+	line = $stdin.gets
+
+	$stderr.puts ['got', line].inspect
+
+	puts JSON.generate(command: strategy.next_tick)
+
+	# sleep 1
+end
