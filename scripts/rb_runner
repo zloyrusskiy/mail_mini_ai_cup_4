@@ -4,27 +4,26 @@ require 'common'
 require 'json'
 require 'active_support/all'
 
+DEBUG = !ENV['DEBUG'].nil?
+
 $stdout.sync = true
 $stderr.sync = true 
 $stdin.sync = true
 
 class_name = ARGV.first
-class_name = 'Simple' if class_name.empty?
+class_name = 'random' if class_name.nil?
 
-strategy = ('Strategy::' + class_name).constantize.new
+config = Game::Config.new JSON.parse($stdin.gets, symbolize_names: true)
 
-game_config = Game::Config.new
-game_config.set_start_config $stdin.gets
-config = game_config.get_start_config
+strategy = ('Strategy::' + class_name.camelcase).constantize.new config
 
 loop do
-	line = $stdin.gets
-	game_config.set_current_state line
-	state = game_config.get_current_state
+	state_ext_obj = JSON.parse($stdin.gets, symbolize_names: true)
+	$stderr.puts ['got', state_ext_obj].inspect if DEBUG
 
-	$stderr.puts ['got', line].inspect
+	state = Game::State.new state_ext_obj
 
-	puts JSON.generate(command: strategy.next_tick(config, state))
+	puts JSON.generate(command: strategy.next_tick(state))
 
 	# sleep 1
 end

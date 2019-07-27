@@ -2,23 +2,13 @@ require 'json'
 
 module Game
 	class Config
-		@start_config = {}
-		@current_state = {}
-		
-		def set_start_config config
-			@start_config = JSON.parse(config)
-		end
+		attr_reader :x_cells_count, :y_cells_count, :player_init_speed, :cell_width
 
-		def get_start_config
-			@start_config
-		end
-
-		def set_current_state state
-			@current_state = JSON.parse(state)
-		end
-
-		def get_current_state
-			@current_state
+		def initialize config
+			@x_cells_count = config[:x_cells_count]
+			@y_cells_count = config[:y_cells_count]
+			@player_init_speed = config[:speed]
+			@cell_width = config[:width]
 		end
 	end
 end
