@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift(File.join(__dir__, '..', 'lib'))
+require 'common'
+require 'json'
+require 'active_support/all'
+
+DEBUG = !ENV['DEBUG'].nil?
+
+$stdout.sync = true
+$stderr.sync = true 
+$stdin.sync = true
+
+class_name = ARGV.first
+class_name = 'random' if class_name.nil?
+
+config = Game::Config.new JSON.parse($stdin.gets, symbolize_names: true)
+
+strategy = ('Strategy::' + class_name.camelcase).constantize.new config
+
+loop do
+	state_ext_obj = JSON.parse($stdin.gets, symbolize_names: true)
+	$stderr.puts ['got', state_ext_obj].inspect if DEBUG
+
+	state = Game::State.new state_ext_obj
+
+	puts JSON.generate(command: strategy.next_tick(state))
+
+	# sleep 1
+end

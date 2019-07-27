@@ -1,5 +1,5 @@
 module Strategy
-	class Sofinms
+	class Sofinms < BaseStrategy
 		MOVES = %w(left right up down)
 
 		def get_allowed_movements state
@@ -66,7 +66,7 @@ module Strategy
 			''
 		end
 
-		def next_tick config, state
+		def next_tick state
 			allowed_movements = get_allowed_movements state
 
 			# Если можно на следующем шаге присоединить территорию, то делаем это
