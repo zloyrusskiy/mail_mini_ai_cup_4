@@ -1,13 +1,18 @@
 #!/usr/bin/env ruby
 $LOAD_PATH.unshift(File.join(__dir__, '..', 'lib'))
 require 'strategy/simple'
+require 'strategy/sofinms_algorithm'
 require 'json'
+require 'active_support/all'
 
 $stdout.sync = true
 $stderr.sync = true 
 $stdin.sync = true
 
-strategy = Strategy::Simple.new
+class_name = ARGV.first
+class_name = 'Simple' if class_name.empty?
+
+strategy = ('Strategy::' + class_name).constantize.new
 
 loop do
 	line = $stdin.gets
