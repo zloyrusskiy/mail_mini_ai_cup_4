@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 $LOAD_PATH.unshift(File.join(__dir__, '..', 'lib'))
 require 'common'
-require 'json'
+require 'json/ext'
 require 'active_support/all'
 
 DEBUG = !ENV['DEBUG'].nil?
@@ -23,7 +23,7 @@ loop do
 
 	state = Game::State.new state_ext_obj
 
-	puts JSON.generate(command: strategy.next_tick(state))
+	puts JSON.fast_generate(command: strategy.next_tick(state))
 
 	# sleep 1
 end

@@ -9,7 +9,7 @@ module Game
 				when 'saw' then :saw
 			end
 
-			@position = Game::Point.new(bonus_ext_obj[:position])
+			@position = Game::Point.new(bonus_ext_obj[:position]) unless bonus_ext_obj[:position].nil?
 
 			@ticks = bonus_ext_obj[:ticks]
 		end
