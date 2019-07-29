@@ -7,6 +7,7 @@ module Strategy
 			@confog = config
 			@road = []
 			@prev_move = ''
+			@prev_position = nil
 		end
 
 		def get_allowed_movements x, y, lines
@@ -110,13 +111,14 @@ module Strategy
 			next_move[0]
 		end
 
-		def draw_a_star_path current_xy, finish_xy, lines
+		def draw_a_star_path current_xy, finish_xy, obstacles_points
+			@road = []
 			y_lines = []
 			(0..30).to_a.each do |y|
 				line_x = ''
 				(0..30).to_a.each do |x|
 					symbal = ' '
-					symbal = '#' if is_points_include_xy(lines, [x*30 + 15,y*30 + 15])
+					symbal = '#' if is_points_include_xy(obstacles_points, [x*30 + 15,y*30 + 15])
 					symbal = 'A' if x == ((current_xy[0] - 15).to_f / 30.0).round && y == ((current_xy[1] - 15).to_f / 30.0).round
 					symbal = 'B' if x == ((finish_xy[0] - 15).to_f / 30.0).round && y == ((finish_xy[1] - 15).to_f / 30.0).round
 					line_x += symbal
@@ -136,13 +138,10 @@ module Strategy
 				y_line.split('')
 			end
 
-			str = ''
 			(0..(map.length - 1)).to_a.each do |y|
 				(0..(map[y].length - 1)).to_a.each do |x|
-					str += map[y][x]
 					if map[y][x] == 'A'
 						set_road map, [y,x]
-						@road
 					end
 				end
 			end
@@ -174,31 +173,106 @@ module Strategy
 			end
 		end
 
-		def next_tick state
-			# file = File.open("/Users/sofinms/Sites/test_log", "w")
-			# file.puts 'road:'
-			# file.puts @road.to_json
-			allowed_movements = get_allowed_movements state.me.position.x, state.me.position.y, state.me.lines 
+		def is_position_in_territory state
+			is_points_include_xy state.me.territory, [state.me.position.x, state.me.position.y]
+		end
 
-			# Если можно на следующем шаге присоединить территорию, то делаем это
-			next_step = attach_territory state
-			# file.puts 'attach_territory:'
-			# file.puts next_step
-			# Если нет, то рандомим следующий шаг
-			if next_step.empty?
-				# Если длина шлейфа слишком большая, то строим дорогу для возвращения по кратчайшему пути на территорию
-				if @road.empty? && check_for_return_to_territory(state)
-					create_road_to_territory state.me
+		def create_road_from_territory state
+			point = search_free_point state, state.me.position.x, state.me.position.y
+			# @file.puts 'free point:'
+			# @file.puts point.to_json
+			# @file.puts 'position:'
+			# @file.puts [state.me.position.x, state.me.position.y].to_json
+			# @file.puts state.me.territory.to_json
+			if !point.empty?
+				obstacles_points = []
+				obstacles_points = [@prev_position] if @prev_position
+				draw_a_star_path [state.me.position.x, state.me.position.y], [point[0], point[1]], obstacles_points
+				# @file.puts 'road:'
+				# @file.puts @road.to_json
+			end
+		end
+
+		def search_free_point state, x, y
+			radius = 1
+			while radius <= 30
+				i = x - (radius*30) + 30
+				while i < x + (radius*30) do
+				   return [i, y + (radius*30)] if is_free_point(state, [i, y + (radius*30)])
+				   return [i, y - (radius*30)] if is_free_point(state, [i, y - (radius*30)])
+				   i += 30
+				end
+				i = y - (radius*30) + 30
+				while i < y + (radius*30) do
+				   return [x + (radius*30), i] if is_free_point(state, [x + (radius*30), i])
+				   return [x - (radius*30), i] if is_free_point(state, [x - (radius*30), i])
+				   i += 30
 				end
 
-				if !@road.empty?
-					next_step = next_move_from_road
-					# file.puts 'road-step:'
-					# file.puts next_step
-				else
+				right_bottom_angle = [x + (radius*30), y - (radius*30)]
+				right_top_angle = [x + (radius*30), y + (radius*30)]
+				left_bottom_angle = [x - (radius*30), y - (radius*30)]
+				left_top_angle = [x - (radius*30), y + (radius*30)]
+				return right_bottom_angle  if is_free_point(state, right_bottom_angle)
+				return right_top_angle if is_free_point(state, right_top_angle)
+				return left_bottom_angle if is_free_point(state, left_bottom_angle)
+				return left_top_angle if is_free_point(state, left_top_angle)
+				
+				radius += 1
+			end
+
+			[]
+		end
+
+		def is_free_point state, point
+			if is_withing_borders(point) && !is_points_include_xy(state.me.territory, point) && !is_points_include_xy(state.me.lines, point)
+				return true
+			end
+
+			return false
+		end
+
+		def is_withing_borders point
+			if point[0] <= 915 and point[0] >= 15 and point[1] <= 915 and point[1] >= 15
+				return true
+			end
+
+			return false
+		end
+
+		def next_tick state
+			# @file = File.open("/Users/sofinms/Sites/test_log", "a")
+			# @file.puts 'road:'
+			# @file.puts @road.to_json
+
+			# Если длина шлейфа слишком большая, то строим дорогу для возвращения по кратчайшему пути на территорию
+			if @road.empty?
+				if check_for_return_to_territory(state)
+					# @file.puts 'check_for_return_to_territory'
+					create_road_to_territory state.me
+					# @file.puts 'road:'
+					# @file.puts @road.to_json
+				end
+				if is_position_in_territory state
+					# @file.puts 'is_position_in_territory'
+					create_road_from_territory state
+				end
+			end
+
+			#Есть ли что-нибудь сейчас в намеченной дороге
+			if !@road.empty?
+				next_step = next_move_from_road
+				# @file.puts 'road-step:'
+				# @file.puts next_step
+			else
+				# Если можно на следующем шаге присоединить территорию, то делаем это
+				next_step = attach_territory state
+				
+				if next_step.empty?
+					allowed_movements = get_allowed_movements state.me.position.x, state.me.position.y, state.me.lines
 					next_step = allowed_movements.sample
-					# file.puts 'allowed_movements:'
-					# file.puts next_step
+					# @file.puts 'allowed_movements:'
+					# @file.puts next_step
 					# Проверяем, что следующий шаг не приведёт нас в тупик
 					next_position = get_next_position state.me.position, next_step
 					next_allowed_movements = get_allowed_movements next_position['x'], next_position['y'], state.me.lines
@@ -206,16 +280,24 @@ module Strategy
 					if next_allowed_movements.empty?
 						allowed_movements.delete(next_step)
 						next_step = allowed_movements.sample
-						# file.puts 'next_allowed_movements:'
-						# file.puts next_step
+						# @file.puts 'next_allowed_movements:'
+						# @file.puts next_step
 					end
+				else
+					# @file.puts 'attach_territory:'
+					# @file.puts next_step
 				end
 			end
-			# file.puts state.me.position.x
-			# file.puts state.me.position.y
-			# file.puts 'prev move:'
-			# file.puts @prev_move
-			# file.close
+
+			# @file.puts 'position:'
+			# @file.puts [state.me.position.x, state.me.position.y].to_json
+			# @file.puts 'prev move:'
+			# @file.puts @prev_move
+			# @file.puts 'next_step:'
+			# @file.puts next_step
+			# @file.puts '-------------------------------------'
+			# @file.close
+			@prev_position = state.me.position
 			@prev_move = next_step
 
 			next_step
